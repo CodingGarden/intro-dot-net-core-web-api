@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  db:
+    image: "mcr.microsoft.com/mssql/server"
+    volumes:
+      - ./db_data:/var/opt/mssql/data
+    ports:
+      - 1433:1433
+    environment:
+      SA_PASSWORD: "f2c8d8ca4bcbca5fa79afad919238ffbc61de562"
+      ACCEPT_EULA: "Y"
+
