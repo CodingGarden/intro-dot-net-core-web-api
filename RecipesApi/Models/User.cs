@@ -9,6 +9,7 @@ namespace RecipeApp.Models
     [Required, MinLength(2), MaxLength(50)]
     public string Username { get; set; }
     [Required, MaxLength(512)]
+    [JsonIgnore]
     public string Password { get; set; }
   }
 }

@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +21,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecipeApp;
 using RecipeApp.Data;
+using RecipeApp.Middlewares;
+using RecipeApp.Models;
 
 namespace RecipesApi
 {
@@ -98,6 +104,17 @@ namespace RecipesApi
         app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "RecipesApi v1"));
       }
 
+      app.UseExceptionHandler((errorApp) => {
+        errorApp.Run(async (context) => {
+          context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+          context.Response.ContentType = "application/json";
+          // TODO: Server.GetLastException
+          var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+          var jsonResponse = JsonSerializer.Serialize(new { message = exceptionHandlerPathFeature.Error.Message });
+          await context.Response.WriteAsync(jsonResponse);
+        });
+      });
+
       app.UseHttpsRedirection();
 
       app.UseStatusCodePages();
@@ -105,6 +122,8 @@ namespace RecipesApi
       app.UseRouting();
 
       app.UseAuthentication();
+
+      app.UseMiddleware<SetUserMiddleware>();
 
       app.UseAuthorization();
 
