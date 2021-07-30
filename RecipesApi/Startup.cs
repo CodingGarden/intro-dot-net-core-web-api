@@ -90,7 +90,7 @@ namespace RecipesApi
           });
 
         services.AddDbContext<RecipesContext>(options => {
-            options.UseSqlServer(Configuration.GetConnectionString("RecipeApp"));
+          options.UseSqlServer(Configuration.GetConnectionString("RecipeApp"));
         });
     }
 
@@ -123,7 +123,7 @@ namespace RecipesApi
 
       app.UseAuthentication();
 
-      app.UseMiddleware<SetUserMiddleware>();
+      // app.UseMiddleware<SetUserMiddleware>();
 
       app.UseAuthorization();
 

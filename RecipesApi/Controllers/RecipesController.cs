@@ -15,6 +15,9 @@ using Microsoft.IdentityModel.Tokens;
 using RecipeApp.Data;
 using RecipeApp.DTO;
 using RecipeApp.Models;
+using RecipeApp.Extensions;
+using Microsoft.AspNetCore.Http;
+using RecipeApp.Attributes;
 
 namespace RecipesApi.Controllers
 {
@@ -32,26 +35,32 @@ namespace RecipesApi.Controllers
     public async Task<ActionResult<IEnumerable<Recipe>>> Get() {
       var recipes = await Context
         .Recipes
-        .Include((recipe) => recipe.Creator)
+        .IncludeCreator()
         .ToListAsync();
       return Ok(recipes);
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ResponseMessageDTO), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(Recipe), StatusCodes.Status200OK)]
+    [Produces("application/json")]
     public async Task<ActionResult<Recipe>> Get(int id) {
       var recipe = await Context
         .Recipes
-        .Include((recipe) => recipe.Creator)
-        .FirstOrDefaultAsync((recipe) => recipe.Id == id);
+        .IncludeCreator()
+        .FirstOrDefaultWithIdAsync(id);
+
       if (recipe == null) {
-        return NotFound(new { message = "Not Found" });
+        return NotFound(ResponseMessages.NotFound);
       }
       return Ok(recipe);
     }
 
     [HttpPost]
     [Authorize]
+    [WithUser]
     public async Task<ActionResult<Recipe>> Post(RecipeDTO recipeRequest) {
+      // TODO: this is ugly... get it working with an extension method OR a user param
       HttpContext.Items.TryGetValue("user", out var userObj);
       User user = (User)userObj;
       var recipe = new Recipe() {
@@ -68,18 +77,23 @@ namespace RecipesApi.Controllers
 
     [HttpPut("{id}")]
     [Authorize]
+    [ProducesResponseType(typeof(ResponseMessageDTO), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseMessageDTO), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(Recipe), StatusCodes.Status200OK)]
+    [Produces("application/json")]
+    [WithUser]
     public async Task<ActionResult<Recipe>> Update(int id, [FromBody] RecipeDTO recipeRequest) {
       HttpContext.Items.TryGetValue("user", out var userObj);
       User user = (User)userObj;
       var recipe = await Context
         .Recipes
-        .Include((recipe) => recipe.Creator)
-        .FirstOrDefaultAsync((recipe) => recipe.Id == id);
+        .IncludeCreator()
+        .FirstOrDefaultWithIdAsync(id);
       if (recipe == null) {
-        return NotFound(new { message = "Not Found" });
+        return NotFound(ResponseMessages.NotFound);
       }
       if (recipe.CreatorId != user.Id) {
-        return Unauthorized(new { message = "Unauthorized" });
+        return Unauthorized(ResponseMessages.UnAuthorized);
       }
       recipe.Title = recipeRequest.Title;
       recipe.Content = recipeRequest.Content;
@@ -91,17 +105,21 @@ namespace RecipesApi.Controllers
 
     [HttpDelete("{id}")]
     [Authorize]
+    [ProducesResponseType(typeof(ResponseMessageDTO), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseMessageDTO), StatusCodes.Status401Unauthorized)]
+    [Produces("application/json")]
+    [WithUser]
     public async Task<ActionResult> Delete(int id) {
       var recipe = await Context
         .Recipes
-        .FirstOrDefaultAsync((recipe) => recipe.Id == id);
+        .FirstOrDefaultWithIdAsync(id);
       if (recipe == null) {
-        return NotFound(new { message = "Not Found" });
+        return NotFound(ResponseMessages.NotFound);
       }
       HttpContext.Items.TryGetValue("user", out var userObj);
       User user = (User)userObj;
       if (recipe.CreatorId != user.Id) {
-        return Unauthorized(new { message = "Unauthorized" });
+        return Unauthorized(ResponseMessages.UnAuthorized);
       }
       Context.Recipes.Remove(recipe);
       await Context.SaveChangesAsync();

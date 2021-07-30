@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RecipeApp.Models
 {    
-  public class BaseModel {
+  public class BaseModel: IBaseModel {
     [Key]
     public int Id { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
